@@ -1,0 +1,265 @@
+[
+  {
+    "actor": "Jin",
+    "action": "created task",
+    "task_id": 12,
+    "task_title": "测试 Matrix 通知",
+    "summary": "Jin created task \"测试 Matrix 通知\"",
+    "id": 1770047152229,
+    "created_at": "2026-02-02T15:45:52.229Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "commented on task",
+    "task_id": 11,
+    "task_title": "Kanban: add activity log (audit trail)",
+    "details": "Just a test to see if you can receive my comment timely. Please comment on this task with \"Received!\" once you see my message.",
+    "summary": "Jin commented on task \"Kanban: add activity log (audit trail)\" (Just a test to see if you can receive my comment timely. Please comment on this task with \"Received!\" once you see my message.)",
+    "id": 1770047581573,
+    "created_at": "2026-02-02T15:53:01.573Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "commented on task",
+    "task_id": 5,
+    "task_title": "Workflow: daily async standup (yesterday/today/blockers)",
+    "details": "Yesterday (2026-02-02)\n- 做了一星期的计划，确定了工作重点\n- 指导 Felix 添加了 Kanban activity log，并解决了 Kanban 的活动不能及时通知 Felix 的问题\n- 和老板讨论了公司 new weather radar 项目天线设计，确定了天线 feed PCB 的稳固固定作为下一步攻关方向\n\nToday (2026-02-03)\n- 和 F",
+    "summary": "Jin commented on task \"Workflow: daily async standup (yesterday/today/blockers)\" (Yesterday (2026-02-02)\n- 做了一星期的计划，确定了工作重点\n- 指导 Felix 添加了 Kanban activity log，并解决了 Kanban 的活动不能及时通知 Felix 的问题\n- 和老板讨论了公司 new weather radar 项目天线设计，确定了天线 feed PCB 的稳固固定作为下一步攻关方向\n\nToday (2026-02-03)\n- 和 F)",
+    "id": 1770105599768,
+    "created_at": "2026-02-03T07:59:59.768Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "created task",
+    "task_id": 20,
+    "task_title": "Code X-Ray: UX 改进 - 分析过程反馈",
+    "summary": "Jin created task \"Code X-Ray: UX 改进 - 分析过程反馈\"",
+    "id": 1770205427130,
+    "created_at": "2026-02-04T11:43:47.130Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "updated task",
+    "task_id": 20,
+    "task_title": "Code X-Ray: UX 改进 - 分析过程反馈",
+    "details": "assignee → Felix",
+    "summary": "Jin updated task \"Code X-Ray: UX 改进 - 分析过程反馈\" (assignee → Felix)",
+    "id": 1770205707965,
+    "created_at": "2026-02-04T11:48:27.965Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "commented on task",
+    "task_id": 5,
+    "task_title": "Workflow: daily async standup (yesterday/today/blockers)",
+    "details": "我希望 9:00 开始。我希望你在 daily standup 里面除了你说的这些，再讲讲你今天打算做什么/怎么做。我希望你能主动推动，而不仅仅是我说你做。",
+    "summary": "Jin commented on task \"Workflow: daily async standup (yesterday/today/blockers)\" (我希望 9:00 开始。我希望你在 daily standup 里面除了你说的这些，再讲讲你今天打算做什么/怎么做。我希望你能主动推动，而不仅仅是我说你做。)",
+    "id": 1770278732470,
+    "created_at": "2026-02-05T08:05:32.470Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "created task",
+    "task_id": 21,
+    "task_title": "Shipborne Radar: 选型 electronic compartment (outdoor enclosure)",
+    "summary": "Jin created task \"Shipborne Radar: 选型 electronic compartment (outdoor enclosure)\"",
+    "id": 1770281747551,
+    "created_at": "2026-02-05T08:55:47.551Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "commented on task",
+    "task_id": 17,
+    "task_title": "信息 X 光机 (code-xray): MVP 需求规格 + 原型开发",
+    "details": "分析完成了但没有显示内容，怎么回事？对话也不能用\r\n",
+    "summary": "Jin commented on task \"信息 X 光机 (code-xray): MVP 需求规格 + 原型开发\" (分析完成了但没有显示内容，怎么回事？对话也不能用\r\n)",
+    "id": 1770395240799,
+    "created_at": "2026-02-06T16:27:20.799Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "deleted task",
+    "task_id": null,
+    "task_title": "TEST hex_id auto-assign",
+    "summary": "Jin deleted task \"TEST hex_id auto-assign\"",
+    "id": 1770652303636,
+    "created_at": "2026-02-09T15:51:43.636Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "commented on task",
+    "task_id": 26,
+    "task_title": "Kanban: 战略地图视图（Mermaid/思维导图）集成探索",
+    "details": "请开始 Phase 1 吧 >agent\r\n",
+    "summary": "Jin commented on task \"Kanban: 战略地图视图（Mermaid/思维导图）集成探索\" (请开始 Phase 1 吧 >agent\r\n)",
+    "id": 1770654732174,
+    "created_at": "2026-02-09T16:32:12.174Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "created task",
+    "task_id": 31,
+    "task_title": "QA Test Task",
+    "summary": "Jin created task \"QA Test Task\"",
+    "id": 1770730006328,
+    "created_at": "2026-02-10T13:26:46.328Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "updated task",
+    "task_id": 31,
+    "task_title": "QA Test Task",
+    "details": "status → in-progress",
+    "summary": "Jin updated task \"QA Test Task\" (status → in-progress)",
+    "id": 1770730013961,
+    "created_at": "2026-02-10T13:26:53.961Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "deleted task",
+    "task_id": null,
+    "task_title": "QA Test Task",
+    "summary": "Jin deleted task \"QA Test Task\"",
+    "id": 1770730031103,
+    "created_at": "2026-02-10T13:27:11.103Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "updated task",
+    "task_id": 27,
+    "task_title": "Kanban: 评论支持截图粘贴/多图上传 + 缩略图预览 + 点击放大",
+    "details": "status → review",
+    "summary": "Jin updated task \"Kanban: 评论支持截图粘贴/多图上传 + 缩略图预览 + 点击放大\" (status → review)",
+    "id": 1770737019164,
+    "created_at": "2026-02-10T15:23:39.164Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "commented on task",
+    "task_id": 27,
+    "task_title": "Kanban: 评论支持截图粘贴/多图上传 + 缩略图预览 + 点击放大",
+    "details": "请发个你桌面的截图过来看看我能不能收到，并点击放大\r\n",
+    "summary": "Jin commented on task \"Kanban: 评论支持截图粘贴/多图上传 + 缩略图预览 + 点击放大\" (请发个你桌面的截图过来看看我能不能收到，并点击放大\r\n)",
+    "id": 1770737058981,
+    "created_at": "2026-02-10T15:24:18.981Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "commented on task",
+    "task_id": 27,
+    "task_title": "Kanban: 评论支持截图粘贴/多图上传 + 缩略图预览 + 点击放大",
+    "details": "👌",
+    "summary": "Jin commented on task \"Kanban: 评论支持截图粘贴/多图上传 + 缩略图预览 + 点击放大\" (👌)",
+    "id": 1770737183582,
+    "created_at": "2026-02-10T15:26:23.582Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "updated task",
+    "task_id": 27,
+    "task_title": "Kanban: 评论支持截图粘贴/多图上传 + 缩略图预览 + 点击放大",
+    "details": "status → done",
+    "summary": "Jin updated task \"Kanban: 评论支持截图粘贴/多图上传 + 缩略图预览 + 点击放大\" (status → done)",
+    "id": 1770737299332,
+    "created_at": "2026-02-10T15:28:19.332Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "updated task",
+    "task_id": 26,
+    "task_title": "Kanban: 战略地图视图（Mermaid/思维导图）集成探索",
+    "details": "status → in-progress",
+    "summary": "Jin updated task \"Kanban: 战略地图视图（Mermaid/思维导图）集成探索\" (status → in-progress)",
+    "id": 1770737795937,
+    "created_at": "2026-02-10T15:36:35.937Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "commented on task",
+    "task_id": 26,
+    "task_title": "Kanban: 战略地图视图（Mermaid/思维导图）集成探索",
+    "details": "mindmap 里应该显示的不是 Task #0015 里面的 4个战略方向及分支吗？还有我想要的快速展开与collapse node 的快捷键 （Ctrl + 鼠标放在某个 node 上 -> expand, Shift + 鼠标放在某个 node 上 -> collaps）也没有实现\r\n",
+    "summary": "Jin commented on task \"Kanban: 战略地图视图（Mermaid/思维导图）集成探索\" (mindmap 里应该显示的不是 Task #0015 里面的 4个战略方向及分支吗？还有我想要的快速展开与collapse node 的快捷键 （Ctrl + 鼠标放在某个 node 上 -> expand, Shift + 鼠标放在某个 node 上 -> collaps）也没有实现\r\n)",
+    "id": 1770738007262,
+    "created_at": "2026-02-10T15:40:07.262Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "commented on task",
+    "task_id": 26,
+    "task_title": "Kanban: 战略地图视图（Mermaid/思维导图）集成探索",
+    "details": "字体 contrast 也不够\r\n",
+    "summary": "Jin commented on task \"Kanban: 战略地图视图（Mermaid/思维导图）集成探索\" (字体 contrast 也不够\r\n)",
+    "id": 1770738096383,
+    "created_at": "2026-02-10T15:41:36.383Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "commented on task",
+    "task_id": 26,
+    "task_title": "Kanban: 战略地图视图（Mermaid/思维导图）集成探索",
+    "details": "请更新这个任务 Checklist。来追踪任务的完成。\r\n",
+    "summary": "Jin commented on task \"Kanban: 战略地图视图（Mermaid/思维导图）集成探索\" (请更新这个任务 Checklist。来追踪任务的完成。\r\n)",
+    "id": 1770738131909,
+    "created_at": "2026-02-10T15:42:11.909Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "commented on task",
+    "task_id": 26,
+    "task_title": "Kanban: 战略地图视图（Mermaid/思维导图）集成探索",
+    "details": "你把两个文件搞混了，Goals 里面记录的是近期的目标。Strategy Map 里面记录的是长期的 Strategy。这两个文件应该分开，请记住。请再恢复之前的 Goal 文件。\r\n ",
+    "summary": "Jin commented on task \"Kanban: 战略地图视图（Mermaid/思维导图）集成探索\" (你把两个文件搞混了，Goals 里面记录的是近期的目标。Strategy Map 里面记录的是长期的 Strategy。这两个文件应该分开，请记住。请再恢复之前的 Goal 文件。\r\n )",
+    "id": 1770738843720,
+    "created_at": "2026-02-10T15:54:03.720Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "created task",
+    "task_id": 32,
+    "task_title": "🚨 GRSE Shipborne Radar Wind Profiler — Mechanical Drawings & 文档编纂",
+    "summary": "Jin created task \"🚨 GRSE Shipborne Radar Wind Profiler — Mechanical Drawings & 文档编纂\"",
+    "id": 1770739446306,
+    "created_at": "2026-02-10T16:04:06.306Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "updated task",
+    "task_id": 32,
+    "task_title": "🚨 GRSE Shipborne Radar Wind Profiler — Mechanical Drawings & 文档编纂",
+    "details": null,
+    "summary": "Jin updated task \"🚨 GRSE Shipborne Radar Wind Profiler — Mechanical Drawings & 文档编纂\"",
+    "id": 1771836016838,
+    "created_at": "2026-02-23T08:40:16.838Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "updated task",
+    "task_id": 32,
+    "task_title": "🚨 GRSE Shipborne Radar Wind Profiler — Mechanical Drawings & 文档编纂",
+    "details": "status → review",
+    "summary": "Jin updated task \"🚨 GRSE Shipborne Radar Wind Profiler — Mechanical Drawings & 文档编纂\" (status → review)",
+    "id": 1771836024741,
+    "created_at": "2026-02-23T08:40:24.741Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "updated task",
+    "task_id": 21,
+    "task_title": "Shipborne Radar: 选型 electronic compartment (outdoor enclosure)",
+    "details": "status → review",
+    "summary": "Jin updated task \"Shipborne Radar: 选型 electronic compartment (outdoor enclosure)\" (status → review)",
+    "id": 1771836043822,
+    "created_at": "2026-02-23T08:40:43.822Z"
+  },
+  {
+    "actor": "Jin",
+    "action": "updated task",
+    "task_id": 21,
+    "task_title": "Shipborne Radar: 选型 electronic compartment (outdoor enclosure)",
+    "details": "status → done",
+    "summary": "Jin updated task \"Shipborne Radar: 选型 electronic compartment (outdoor enclosure)\" (status → done)",
+    "id": 1771911026230,
+    "created_at": "2026-02-24T05:30:26.230Z"
+  }
+]

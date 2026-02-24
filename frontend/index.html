@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kanban Board</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <h1>Kanban Board</h1>
+    <nav class="main-nav">
+      <a href="#board" class="nav-link active" data-view="board">Board</a>
+      <a href="#goals" class="nav-link" data-view="goals">Goals</a>
+      <a href="#strategy" class="nav-link" data-view="strategy">Strategy Map</a>
+      <a href="#activity" class="nav-link" data-view="activity">Activity</a>
+      <a href="#mindmaps" class="nav-link" data-view="mindmaps">Mindmaps</a>
+    </nav>
+    <button id="add-task-btn" class="btn btn-primary">+ New Task</button>
+  </header>
+
+  <!-- Board View -->
+  <section id="board-view" class="view active">
+    <main class="board">
+    <div class="column" data-status="backlog">
+      <h2>Backlog</h2>
+      <div class="task-list"></div>
+    </div>
+    <div class="column" data-status="in-progress">
+      <h2>In Progress</h2>
+      <div class="task-list"></div>
+    </div>
+    <div class="column" data-status="review">
+      <h2>Review</h2>
+      <div class="task-list"></div>
+    </div>
+    <div class="column" data-status="done">
+      <h2>Done</h2>
+      <div class="task-list"></div>
+    </div>
+  </main>
+  </section>
+
+  <!-- Goals View -->
+  <section id="goals-view" class="view">
+    <div class="goals-container">
+      <div class="goals-header">
+        <h2>Project Goals</h2>
+        <div class="goals-actions">
+          <button id="edit-goals-btn" class="btn btn-primary">Edit</button>
+          <button id="save-goals-btn" class="btn btn-primary hidden">Save</button>
+          <button id="cancel-goals-btn" class="btn hidden">Cancel</button>
+        </div>
+      </div>
+      <div id="goals-display" class="goals-content"></div>
+      <textarea id="goals-editor" class="goals-editor hidden" placeholder="Enter goals in markdown format..."></textarea>
+      <div id="goals-error" class="goals-error hidden"></div>
+      <div class="goals-meta">
+        <span id="goals-updated"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Strategy Map View -->
+  <section id="strategy-view" class="view">
+    <div class="strategy-container">
+      <div class="strategy-header">
+        <h2>Strategy Map</h2>
+        <div class="strategy-actions">
+          <button id="edit-strategy-btn" class="btn btn-primary">Edit</button>
+          <button id="save-strategy-btn" class="btn btn-primary hidden">Save</button>
+          <button id="cancel-strategy-btn" class="btn hidden">Cancel</button>
+          <button id="fit-strategy-btn" class="btn" title="Fit to view">⊞ Fit</button>
+        </div>
+      </div>
+      <div id="strategy-display-mode">
+        <div id="strategy-markmap" class="strategy-markmap">
+          <svg id="markmap-svg"></svg>
+        </div>
+      </div>
+      <div id="strategy-edit-mode" class="strategy-edit-mode hidden">
+        <div class="strategy-edit-split">
+          <div class="strategy-edit-left">
+            <label>Goals Markdown</label>
+            <textarea id="strategy-editor" class="strategy-editor" placeholder="# Goals&#10;&#10;## Category 1&#10;- Task A&#10;- Task B&#10;&#10;## Category 2&#10;- Task C"></textarea>
+          </div>
+          <div class="strategy-edit-right">
+            <div class="strategy-preview-label">Preview</div>
+            <div id="strategy-preview" class="strategy-markmap">
+              <svg id="markmap-preview-svg"></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="strategy-error" class="strategy-error hidden"></div>
+      <div class="strategy-meta">
+        <span id="strategy-updated"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Activity View -->
+  <section id="activity-view" class="view">
+    <div class="activity-container">
+      <div class="activity-header">
+        <h2>Activity Log</h2>
+        <div class="activity-filters">
+          <select id="activity-actor-filter">
+            <option value="">All actors</option>
+            <option value="Jin">Jin</option>
+            <option value="Felix">Felix</option>
+          </select>
+          <select id="activity-limit-filter">
+            <option value="20">Last 20</option>
+            <option value="50" selected>Last 50</option>
+            <option value="100">Last 100</option>
+          </select>
+          <label class="time-toggle">
+            <input type="checkbox" id="activity-precise-time">
+            <span>精确时间</span>
+          </label>
+          <button id="refresh-activity-btn" class="btn">Refresh</button>
+        </div>
+      </div>
+      <div id="activity-list" class="activity-list"></div>
+    </div>
+  </section>
+
+  <!-- Mindmaps View -->
+  <section id="mindmaps-view" class="view">
+    <div class="mindmaps-layout">
+      <!-- Left Sidebar: Mindmap List -->
+      <div class="mindmaps-sidebar">
+        <div class="mindmaps-sidebar-header">
+          <h3>Mindmaps</h3>
+          <button id="new-mindmap-btn" class="btn btn-primary btn-small">+ New</button>
+        </div>
+        <div id="mindmaps-list" class="mindmaps-list"></div>
+      </div>
+
+      <!-- Center: Mindmap Canvas -->
+      <div class="mindmaps-center">
+        <div id="mindmap-toolbar" class="mindmap-toolbar hidden">
+          <div class="mindmap-toolbar-left">
+            <h3 id="mindmap-title-display" class="mindmap-title-display"></h3>
+            <button id="rename-mindmap-btn" class="btn btn-small" title="Rename">✏️</button>
+            <button id="delete-mindmap-btn" class="btn btn-small btn-danger" title="Delete mindmap">🗑️</button>
+            <span class="zen-mode-indicator">🧘 Zen Mode (Z to exit)</span>
+          </div>
+          <div class="mindmap-toolbar-right">
+            <span class="mindmap-help-hint">hjkl/方向键: 导航 · i/F2: 编辑 · o: 子节点 · O: 兄弟 · x: 删除 · Space: 折叠 · u: 撤销 · Ctrl+1/2/3: 切换面板 · Esc: 回到导图</span>
+          </div>
+        </div>
+        <div id="mindmap-container" class="mindmap-container">
+          <div id="mindmap-empty" class="mindmap-empty">
+            <p>Select a mindmap from the sidebar or create a new one</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Panel: Notes -->
+      <div id="mindmap-right-panel" class="mindmap-right-panel hidden">
+        <div class="mindmap-node-notes">
+          <h4>Node Note <kbd class="mindmap-kbd">Ctrl+2</kbd></h4>
+          <textarea id="mindmap-node-note" class="mindmap-note-editor" placeholder="Add a note for this node... (Esc to return to map)" rows="6"></textarea>
+        </div>
+        <div class="mindmap-thinking-notes">
+          <h4>Thinking Notes <kbd class="mindmap-kbd">Ctrl+3</kbd></h4>
+          <textarea id="mindmap-thinking-notes" class="mindmap-note-editor mindmap-thinking-editor" placeholder="Free-form notes, ideas, markdown... (Esc to return to map)" rows="12"></textarea>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Zen Mode Floating Panels -->
+  <div id="zen-float-note" class="zen-floating-panel" style="top: 80px; right: 40px;">
+    <div class="zen-floating-header">
+      <h4>Node Note</h4>
+      <button class="zen-floating-close">&times;</button>
+    </div>
+    <div class="zen-floating-body">
+      <textarea id="zen-node-note" placeholder="Node note... (Esc to close)"></textarea>
+    </div>
+  </div>
+  <div id="zen-float-thinking" class="zen-floating-panel" style="top: 80px; right: 420px;">
+    <div class="zen-floating-header">
+      <h4>Thinking Notes</h4>
+      <button class="zen-floating-close">&times;</button>
+    </div>
+    <div class="zen-floating-body">
+      <textarea id="zen-thinking-notes" placeholder="Thinking notes... (Esc to close)" style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.8rem;"></textarea>
+    </div>
+  </div>
+
+  <!-- Mindmap Help Modal -->
+  <div id="mindmap-help-modal" class="mindmap-help-modal hidden">
+    <div class="mindmap-help-backdrop"></div>
+    <div class="mindmap-help-card">
+      <div class="mindmap-help-header">
+        <h3>⌨️ Keyboard Shortcuts</h3>
+        <button class="mindmap-help-close">&times;</button>
+      </div>
+      <div class="mindmap-help-body">
+        <div class="mindmap-help-section">
+          <h4>Navigation</h4>
+          <div class="mindmap-help-row"><kbd>h</kbd> / <kbd>←</kbd><span>Go to parent</span></div>
+          <div class="mindmap-help-row"><kbd>l</kbd> / <kbd>→</kbd><span>Go to child / expand</span></div>
+          <div class="mindmap-help-row"><kbd>j</kbd> / <kbd>↓</kbd><span>Next node (same depth)</span></div>
+          <div class="mindmap-help-row"><kbd>k</kbd> / <kbd>↑</kbd><span>Previous node (same depth)</span></div>
+        </div>
+        <div class="mindmap-help-section">
+          <h4>Editing</h4>
+          <div class="mindmap-help-row"><kbd>i</kbd> / <kbd>F2</kbd><span>Edit node text</span></div>
+          <div class="mindmap-help-row"><kbd>o</kbd> / <kbd>Tab</kbd><span>Add child node</span></div>
+          <div class="mindmap-help-row"><kbd>O</kbd> / <kbd>Enter</kbd><span>Add sibling node</span></div>
+          <div class="mindmap-help-row"><kbd>x</kbd> / <kbd>d</kbd> / <kbd>Del</kbd><span>Delete node</span></div>
+          <div class="mindmap-help-row"><kbd>Space</kbd><span>Toggle collapse</span></div>
+        </div>
+        <div class="mindmap-help-section">
+          <h4>Undo / Redo</h4>
+          <div class="mindmap-help-row"><kbd>u</kbd> / <kbd>Ctrl+Z</kbd><span>Undo</span></div>
+          <div class="mindmap-help-row"><kbd>Ctrl+R</kbd> / <kbd>Ctrl+Shift+Z</kbd><span>Redo</span></div>
+        </div>
+        <div class="mindmap-help-section">
+          <h4>Panels</h4>
+          <div class="mindmap-help-row"><kbd>Ctrl+1</kbd><span>Focus mindmap canvas</span></div>
+          <div class="mindmap-help-row"><kbd>Ctrl+2</kbd><span>Focus node note</span></div>
+          <div class="mindmap-help-row"><kbd>Ctrl+3</kbd><span>Focus thinking notes</span></div>
+          <div class="mindmap-help-row"><kbd>Escape</kbd><span>Back to canvas</span></div>
+          <div class="mindmap-help-row"><kbd>Z</kbd><span>Zen mode (toggle)</span></div>
+          <div class="mindmap-help-row"><kbd>?</kbd><span>This help</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Task Modal -->
+  <div id="task-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modal-title">New Task</h2>
+        <button class="close-btn">&times;</button>
+      </div>
+      <form id="task-form">
+        <input type="hidden" id="task-id">
+        <div class="form-group">
+          <label for="title">Title</label>
+          <input type="text" id="title" required>
+        </div>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="checklist">Checklist (Felix)</label>
+          <textarea id="checklist" rows="6" placeholder="- [ ] ...\n- [x] ..."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="assignee">Assignee</label>
+            <select id="assignee">
+              <option value="Jin">Jin</option>
+              <option value="Felix">Felix</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="priority">Priority</label>
+            <select id="priority">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="status">Status</label>
+            <select id="status">
+              <option value="backlog">Backlog</option>
+              <option value="in-progress">In Progress</option>
+              <option value="review">Review</option>
+              <option value="done">Done</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="delete-task-btn" class="btn btn-danger hidden">Delete</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+
+      <!-- Checklist is now a dedicated textarea field inside the task form -->
+
+      <!-- Comments Section (only shown when editing) -->
+      <div id="comments-section" class="hidden">
+        <h3>Comments</h3>
+        <div id="comments-list"></div>
+        <form id="comment-form">
+          <div class="form-row">
+            <select id="comment-author">
+              <option value="Jin">Jin</option>
+              <option value="Felix">Felix</option>
+            </select>
+
+            <div class="comment-compose">
+              <textarea id="comment-content" placeholder="Add a comment... (Ctrl+V to paste screenshots)" rows="2"></textarea>
+              <div id="comment-attachments" class="comment-attachments"></div>
+              <div class="comment-compose-actions">
+                <input id="comment-files" type="file" accept="image/png,image/jpeg,image/webp" multiple style="display:none" />
+                <button type="button" id="comment-attach-btn" class="btn btn-small">Attach images</button>
+                <button type="submit" class="btn btn-small">Send</button>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <!-- Image modal -->
+        <div id="image-modal" class="image-modal hidden">
+          <div class="image-modal-backdrop"></div>
+          <div class="image-modal-content">
+            <button type="button" id="image-modal-close" class="image-modal-close">×</button>
+            <img id="image-modal-img" alt="" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://cdn.jsdelivr.net/npm/markmap-view"></script>
+  <script src="https://cdn.jsdelivr.net/npm/markmap-lib"></script>
+  <script src="js/strategy-map.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/simple-mind-map@0.12.1/dist/simpleMindMap.umd.min.js"></script>
+  <script src="js/mindmap.js"></script>
+</body>
+</html>

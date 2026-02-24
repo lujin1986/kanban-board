@@ -1,0 +1,16 @@
+[Unit]
+Description=Kanban Board SSE Watcher
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+WorkingDirectory=/home/jin/projects/kanban-board
+ExecStart=/usr/bin/node /home/jin/projects/kanban-board/scripts/kanban-watcher.js
+Restart=always
+RestartSec=5
+Environment=NODE_ENV=production
+Environment=KANBAN_SSE_URL=http://localhost:3000/api/events
+
+[Install]
+WantedBy=multi-user.target
