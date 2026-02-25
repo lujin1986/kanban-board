@@ -682,6 +682,26 @@
           }
           break;
         }
+        case 'n': {
+          // n = focus node notes
+          e.preventDefault();
+          if (zenMode) {
+            toggleZenFloatingPanel('zen-float-note');
+          } else {
+            if (nodeNoteEl && !nodeNoteEl.disabled) nodeNoteEl.focus();
+          }
+          break;
+        }
+        case 'N': {
+          // N = focus thinking notes
+          e.preventDefault();
+          if (zenMode) {
+            toggleZenFloatingPanel('zen-float-thinking');
+          } else {
+            if (thinkingNotesEl) thinkingNotesEl.focus();
+          }
+          break;
+        }
       }
     }
 
