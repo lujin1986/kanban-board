@@ -17,6 +17,15 @@
   let redoStack = [];
   let editingNodeId = null;
   let nodeCounter = 0;
+  let clientId = 'frontend_' + Math.random().toString(36).slice(2, 10);
+  let currentRevision = 0;
+  let suppressNextSave = false;  // flag to avoid re-saving data we just loaded from backend
+  let tagFilter = 'all'; // 'all' | 'knowledge' | 'execution'
+
+  const TAG_CONFIG = {
+    knowledge: { emoji: '📚', label: 'Knowledge' },
+    execution: { emoji: '⚔️', label: 'Execution' }
+  };
 
   // DOM refs
   const listEl = document.getElementById('mindmaps-list');
@@ -30,6 +39,7 @@
   const newBtn = document.getElementById('new-mindmap-btn');
   const renameBtn = document.getElementById('rename-mindmap-btn');
   const deleteBtn = document.getElementById('delete-mindmap-btn');
+  const tagBtn = document.getElementById('mindmap-tag-btn');
 
   // Canvas-based mindmap renderer
   class MindmapCanvas {
@@ -877,18 +887,21 @@
   // ---- Render List ----
   function renderList() {
     if (!listEl) return;
-    if (mindmaps.length === 0) {
-      listEl.innerHTML = '<div class="mindmaps-empty">No mindmaps yet</div>';
+    const filtered = tagFilter === 'all' ? mindmaps : mindmaps.filter(m => (m.tag || 'knowledge') === tagFilter);
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div class="mindmaps-empty">' + (mindmaps.length === 0 ? 'No mindmaps yet' : 'No mindmaps with this tag') + '</div>';
       return;
     }
-    listEl.innerHTML = mindmaps.map(m => {
+    listEl.innerHTML = filtered.map(m => {
       const active = m.id === currentMindmapId ? 'active' : '';
+      const tag = m.tag || 'knowledge';
+      const tagEmoji = tag === 'execution' ? '⚔️' : '📚';
       const time = m.updated_at ? new Date(m.updated_at).toLocaleDateString('en-US', {
         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
       }) : '';
       return `
         <div class="mindmap-list-item ${active}" data-id="${m.id}">
-          <div class="mindmap-list-title">${escapeHtml(m.title)}</div>
+          <div class="mindmap-list-title"><span class="mindmap-tag-emoji">${tagEmoji}</span> ${escapeHtml(m.title)}</div>
           <div class="mindmap-list-time">${time}</div>
         </div>
       `;
@@ -900,10 +913,38 @@
     });
   }
 
+  function renderTagFilters() {
+    const sidebar = document.querySelector('.mindmaps-sidebar');
+    if (!sidebar) return;
+    let filterBar = sidebar.querySelector('.mindmap-tag-filters');
+    if (!filterBar) {
+      filterBar = document.createElement('div');
+      filterBar.className = 'mindmap-tag-filters';
+      sidebar.insertBefore(filterBar, listEl);
+    }
+    const filters = [
+      { key: 'all', label: 'All' },
+      { key: 'knowledge', label: '📚' },
+      { key: 'execution', label: '⚔️' }
+    ];
+    filterBar.innerHTML = filters.map(f => {
+      const active = tagFilter === f.key ? 'active' : '';
+      return `<button class="mindmap-tag-filter-btn ${active}" data-filter="${f.key}">${f.label}</button>`;
+    }).join('');
+    filterBar.querySelectorAll('.mindmap-tag-filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        tagFilter = btn.dataset.filter;
+        renderTagFilters();
+        renderList();
+      });
+    });
+  }
+
   // ---- Load / Save ----
   async function loadMindmapList() {
     try {
       mindmaps = await fetchMindmaps();
+      renderTagFilters();
       renderList();
     } catch (err) {
       console.error('Failed to load mindmaps:', err);
@@ -920,6 +961,7 @@
       currentMindmap = data;
       currentMindmapId = id;
       selectedNodeId = null;
+      currentRevision = data.revision || 0;
       // Restore undo/redo history from backend (if available)
       undoStack = (data.history && Array.isArray(data.history.undo)) ? [...data.history.undo] : [];
       redoStack = (data.history && Array.isArray(data.history.redo)) ? [...data.history.redo] : [];
@@ -929,6 +971,7 @@
       if (rightPanel) rightPanel.classList.remove('hidden');
       if (emptyEl) emptyEl.style.display = 'none';
       if (titleDisplay) titleDisplay.textContent = data.title;
+      updateTagButton(data.tag || 'knowledge');
 
       // Init or update canvas
       if (!mindmapInstance) {
@@ -964,13 +1007,15 @@
 
   async function doSave() {
     if (!currentMindmapId || !mindmapInstance) return;
+    if (suppressNextSave) { suppressNextSave = false; return; }
     if (saving) { pendingSave = true; return; }
     saving = true;
     try {
       const mapData = mindmapInstance.getData();
       const notes = thinkingNotesEl ? thinkingNotesEl.value : '';
       const history = { undo: [...undoStack], redo: [...redoStack] };
-      await updateMindmap(currentMindmapId, { data: mapData, notes, history });
+      const result = await updateMindmap(currentMindmapId, { data: mapData, notes, history, source: clientId });
+      if (result && result.revision) currentRevision = result.revision;
       // Update list timestamps
       const idx = mindmaps.findIndex(m => m.id === currentMindmapId);
       if (idx >= 0) {
@@ -1218,6 +1263,31 @@
     }
   }
 
+  // ---- Tag Functions ----
+  function updateTagButton(tag) {
+    if (!tagBtn) return;
+    const isExec = tag === 'execution';
+    tagBtn.textContent = isExec ? '⚔️ execution' : '📚 knowledge';
+    tagBtn.className = 'mindmap-tag-badge ' + (isExec ? 'tag-execution' : 'tag-knowledge');
+  }
+
+  async function toggleTag() {
+    if (!currentMindmapId || !currentMindmap) return;
+    const currentTag = currentMindmap.tag || 'knowledge';
+    const newTag = currentTag === 'knowledge' ? 'execution' : 'knowledge';
+    try {
+      await updateMindmap(currentMindmapId, { tag: newTag, source: clientId });
+      currentMindmap.tag = newTag;
+      updateTagButton(newTag);
+      // Update in list
+      const idx = mindmaps.findIndex(m => m.id === currentMindmapId);
+      if (idx >= 0) mindmaps[idx].tag = newTag;
+      renderList();
+    } catch (err) {
+      console.error('Failed to update tag:', err);
+    }
+  }
+
   // ---- Init ----
   function init() {
     if (initialized) {
@@ -1235,6 +1305,7 @@
     if (newBtn) newBtn.addEventListener('click', onNewMindmap);
     if (renameBtn) renameBtn.addEventListener('click', onRenameMindmap);
     if (deleteBtn) deleteBtn.addEventListener('click', onDeleteMindmap);
+    if (tagBtn) tagBtn.addEventListener('click', toggleTag);
 
     // Node note editing
     if (nodeNoteEl) {
@@ -1320,7 +1391,7 @@
           const mapData = mindmapInstance.getData();
           const notes = thinkingNotesEl ? thinkingNotesEl.value : '';
           const history = { undo: [...undoStack], redo: [...redoStack] };
-          const payload = JSON.stringify({ data: mapData, notes, history });
+          const payload = JSON.stringify({ data: mapData, notes, history, source: clientId });
           navigator.sendBeacon(`${API_URL}/${currentMindmapId}`, new Blob([payload], { type: 'application/json' }));
         } catch (e) { /* best effort */ }
       }
@@ -1333,8 +1404,85 @@
       }
     });
 
+    // Listen for backend-initiated mindmap updates via SSE
+    setupMindmapSSE();
+
     // Load list
     loadMindmapList();
+  }
+
+  function setupMindmapSSE() {
+    // Use the existing /api/events SSE endpoint
+    const evtSource = new EventSource('/api/events');
+    evtSource.addEventListener('message', (e) => {
+      try {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'mindmap:updated' && msg.data) {
+          const { id, source, revision } = msg.data;
+          // Ignore our own saves
+          if (source === clientId) return;
+          // Only reload if it's the currently open mindmap and revision is newer
+          if (id === currentMindmapId && revision > currentRevision) {
+            console.log(`[mindmap] Backend update detected (source=${source}, rev=${revision}). Reloading...`);
+            reloadFromBackend();
+          }
+          // Also refresh the list sidebar (title may have changed)
+          loadMindmapList();
+        }
+      } catch (err) {
+        // ignore parse errors for non-mindmap events
+      }
+    });
+    evtSource.addEventListener('error', () => {
+      // EventSource auto-reconnects; no action needed
+    });
+  }
+
+  async function reloadFromBackend() {
+    if (!currentMindmapId || !mindmapInstance) return;
+    try {
+      const data = await fetchMindmap(currentMindmapId);
+
+      // Push current state to undo stack so user can undo the external change
+      const currentData = mindmapInstance.getData();
+      undoStack.push(JSON.stringify(currentData));
+      if (undoStack.length > 50) undoStack.shift();
+      redoStack = [];
+
+      // Update state
+      currentMindmap = data;
+      currentRevision = data.revision || 0;
+      suppressNextSave = true;  // don't re-save what we just loaded
+
+      // Reload canvas
+      mindmapInstance.setData(data.data);
+
+      // Reload thinking notes
+      if (thinkingNotesEl) thinkingNotesEl.value = data.notes || '';
+
+      // Update title and tag display
+      if (titleDisplay) titleDisplay.textContent = data.title;
+      updateTagButton(data.tag || 'knowledge');
+
+      // Show a brief notification
+      showBackendUpdateNotice();
+    } catch (err) {
+      console.error('[mindmap] Failed to reload from backend:', err);
+    }
+  }
+
+  function showBackendUpdateNotice() {
+    // Show a brief toast notification
+    let toast = document.getElementById('mindmap-backend-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'mindmap-backend-toast';
+      toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#4A90D9;color:#fff;padding:10px 18px;border-radius:8px;font-size:14px;z-index:9999;opacity:0;transition:opacity 0.3s;pointer-events:none;';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = '🔄 Mindmap updated from backend (Ctrl+Z to undo)';
+    toast.style.opacity = '1';
+    setTimeout(() => { toast.style.opacity = '0'; }, 3000);
   }
 
   // Listen for view activation

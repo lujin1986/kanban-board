@@ -662,7 +662,7 @@ app.get('/api/mindmaps', (req, res) => {
     const files = fs.readdirSync(mindmapsDir).filter(f => f.endsWith('.json'));
     const list = files.map(f => {
       const data = JSON.parse(fs.readFileSync(path.join(mindmapsDir, f), 'utf8'));
-      return { id: data.id, title: data.title, updated_at: data.updated_at };
+      return { id: data.id, title: data.title, tag: data.tag || 'knowledge', updated_at: data.updated_at };
     }).sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || ''));
     res.json(list);
   } catch (err) {
@@ -673,13 +673,15 @@ app.get('/api/mindmaps', (req, res) => {
 // Create mindmap
 app.post('/api/mindmaps', (req, res) => {
   try {
-    const { title } = req.body;
+    const { title, tag } = req.body;
     if (!title) return res.status(400).json({ error: 'Title is required' });
     const id = crypto.randomUUID();
     const now = new Date().toISOString();
+    const validTag = (tag === 'execution') ? 'execution' : 'knowledge';
     const mindmap = {
       id,
       title,
+      tag: validTag,
       data: {
         data: { text: title, children: [] }
       },
@@ -699,6 +701,8 @@ app.get('/api/mindmaps/:id', (req, res) => {
   try {
     const mindmap = readMindmap(req.params.id);
     if (!mindmap) return res.status(404).json({ error: 'Mindmap not found' });
+    // Ensure tag field exists for backward compatibility
+    if (!mindmap.tag) mindmap.tag = 'knowledge';
     res.json(mindmap);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -707,8 +711,9 @@ app.get('/api/mindmaps/:id', (req, res) => {
 
 // Shared update logic for PUT and POST
 function applyMindmapUpdate(mindmap, body) {
-  const { title, data, notes, history } = body;
+  const { title, data, notes, history, tag } = body;
   if (title !== undefined) mindmap.title = title;
+  if (tag !== undefined) mindmap.tag = (tag === 'execution') ? 'execution' : 'knowledge';
   if (data !== undefined) mindmap.data = data;
   if (notes !== undefined) mindmap.notes = notes;
   // Persist undo/redo history (capped at 20 steps to keep file size reasonable)
@@ -719,6 +724,8 @@ function applyMindmapUpdate(mindmap, body) {
       redo: (history.redo || []).slice(-maxSteps),
     };
   }
+  // Bump revision counter
+  mindmap.revision = (mindmap.revision || 0) + 1;
   mindmap.updated_at = new Date().toISOString();
   return mindmap;
 }
@@ -728,8 +735,18 @@ app.put('/api/mindmaps/:id', (req, res) => {
   try {
     const mindmap = readMindmap(req.params.id);
     if (!mindmap) return res.status(404).json({ error: 'Mindmap not found' });
+    const source = req.body.source || 'api';
     applyMindmapUpdate(mindmap, req.body);
     writeMindmap(mindmap);
+    // Notify all SSE clients about the update
+    broadcast('mindmap:updated', {
+      id: mindmap.id,
+      source,
+      revision: mindmap.revision,
+      title: mindmap.title,
+      tag: mindmap.tag || 'knowledge',
+      updated_at: mindmap.updated_at
+    });
     res.json(mindmap);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -741,8 +758,17 @@ app.post('/api/mindmaps/:id', (req, res) => {
   try {
     const mindmap = readMindmap(req.params.id);
     if (!mindmap) return res.status(404).json({ error: 'Mindmap not found' });
+    const source = req.body.source || 'frontend';
     applyMindmapUpdate(mindmap, req.body);
     writeMindmap(mindmap);
+    broadcast('mindmap:updated', {
+      id: mindmap.id,
+      source,
+      revision: mindmap.revision,
+      title: mindmap.title,
+      tag: mindmap.tag || 'knowledge',
+      updated_at: mindmap.updated_at
+    });
     res.json(mindmap);
   } catch (err) {
     res.status(500).json({ error: err.message });

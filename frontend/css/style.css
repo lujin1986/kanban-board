@@ -1506,3 +1506,75 @@ header h1 {
 .btn-danger:hover {
   background: #c82333;
 }
+
+/* ========================================
+   Mindmap Tag Badges
+   ======================================== */
+
+/* Toolbar tag badge (clickable) */
+.mindmap-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.mindmap-tag-badge.tag-knowledge {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.mindmap-tag-badge.tag-knowledge:hover {
+  background: #bbdefb;
+}
+
+.mindmap-tag-badge.tag-execution {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.mindmap-tag-badge.tag-execution:hover {
+  background: #ffe0b2;
+}
+
+/* Small emoji in sidebar list item */
+.mindmap-tag-emoji {
+  margin-right: 2px;
+}
+
+/* Sidebar tag filter buttons */
+.mindmap-tag-filters {
+  display: flex;
+  gap: 4px;
+  padding: 6px 12px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.mindmap-tag-filter-btn {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-weight: 500;
+}
+
+.mindmap-tag-filter-btn:hover {
+  background: #f3f4f6;
+}
+
+.mindmap-tag-filter-btn.active {
+  background: #2c3e50;
+  color: #fff;
+  border-color: #2c3e50;
+}
