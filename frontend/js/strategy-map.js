@@ -212,7 +212,9 @@ async function saveStrategy() {
   }
 }
 
-// Ctrl+hover expand / Shift+hover collapse
+// Interactions:
+// - Ctrl+hover expand / Shift+hover collapse
+// - Click node label -> try open matching Kanban task modal (Phase 1)
 let hoverShortcutsInstalled = false;
 function setupHoverShortcuts() {
   const svgEl = document.getElementById('markmap-svg');
@@ -256,6 +258,8 @@ function setupHoverShortcuts() {
       markmapInstance.renderData();
     }
   });
+
+  // Node click → task jump removed (2026-03-08, Jin: links were broken/empty, feature not needed)
 }
 
 // Event listeners

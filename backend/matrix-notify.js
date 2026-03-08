@@ -27,11 +27,14 @@ const ACTION_EMOJI = {
 /**
  * Send a message to the Matrix room
  */
-async function sendMatrixMessage(text, html = null) {
+async function sendMatrixMessage(text, html = null, opts = {}) {
   if (!CONFIG.enabled || !CONFIG.accessToken) {
     console.log('[matrix-notify] Disabled or no token, skipping:', text);
     return null;
   }
+
+  const maxAttempts = Number.isFinite(opts.maxAttempts) ? opts.maxAttempts : 4;
+  const baseDelayMs = Number.isFinite(opts.baseDelayMs) ? opts.baseDelayMs : 800;
 
   const txnId = `kanban_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   const roomId = encodeURIComponent(CONFIG.roomId);
@@ -48,42 +51,69 @@ async function sendMatrixMessage(text, html = null) {
     body.formatted_body = html;
   }
 
-  return new Promise((resolve, reject) => {
-    const urlObj = new URL(url);
-    const options = {
-      hostname: urlObj.hostname,
-      port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
-      path: urlObj.pathname,
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${CONFIG.accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    };
+  const urlObj = new URL(url);
+  const options = {
+    hostname: urlObj.hostname,
+    port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
+    path: urlObj.pathname,
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${CONFIG.accessToken}`,
+      'Content-Type': 'application/json'
+    }
+  };
 
-    const transport = urlObj.protocol === 'https:' ? https : http;
-    const req = transport.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          console.log('[matrix-notify] Message sent successfully');
-          resolve(JSON.parse(data));
-        } else {
-          console.error('[matrix-notify] Failed:', res.statusCode, data);
-          resolve(null); // Don't reject, just log
-        }
+  const transport = urlObj.protocol === 'https:' ? https : http;
+
+  function wait(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  async function attemptSend(attempt) {
+    const result = await new Promise((resolve) => {
+      const req = transport.request(options, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            console.log('[matrix-notify] Message sent successfully');
+            try {
+              resolve({ ok: true, data: JSON.parse(data) });
+            } catch {
+              resolve({ ok: true, data: null });
+            }
+            return;
+          }
+          resolve({ ok: false, status: res.statusCode, data });
+        });
       });
+
+      req.on('error', (err) => {
+        resolve({ ok: false, status: 0, data: err?.message || 'request error' });
+      });
+
+      req.write(JSON.stringify(body));
+      req.end();
     });
 
-    req.on('error', (err) => {
-      console.error('[matrix-notify] Request error:', err.message);
-      resolve(null); // Don't reject, just log
-    });
+    if (result.ok) return result.data;
 
-    req.write(JSON.stringify(body));
-    req.end();
-  });
+    const status = result.status || 0;
+    const bodyText = result.data || '';
+    const shouldRetry = (status === 0) || status === 429 || (status >= 500 && status <= 599);
+
+    if (!shouldRetry || attempt >= maxAttempts) {
+      console.error('[matrix-notify] Failed:', status, bodyText);
+      return null;
+    }
+
+    const delay = Math.min(baseDelayMs * Math.pow(2, attempt - 1), 15000);
+    console.warn(`[matrix-notify] Send failed (status=${status}), retrying in ${delay}ms (attempt ${attempt}/${maxAttempts})`);
+    await wait(delay);
+    return attemptSend(attempt + 1);
+  }
+
+  return attemptSend(1);
 }
 
 /**

@@ -721,6 +721,15 @@ header h1 {
   --markmap-text-color: #1a1a1a;
 }
 
+/* Markmap node labels are clickable (opens matching Kanban task modal) */
+.strategy-markmap g.markmap-node foreignObject {
+  cursor: pointer;
+}
+
+.strategy-markmap g.markmap-node foreignObject:hover {
+  opacity: 0.9;
+}
+
 .strategy-mermaid {
   background: #1a1a2e;
   border-radius: 8px;

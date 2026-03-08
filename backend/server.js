@@ -10,6 +10,7 @@ const matrixNotify = require('./matrix-notify');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
 const NOTIFY_FOR_ACTORS = (process.env.NOTIFY_FOR_ACTORS || 'Jin').split(',').map(s => s.trim());
 
 // Initialize Matrix notifications
@@ -24,7 +25,7 @@ if (fs.existsSync(matrixConfigPath)) {
   }
 }
 
-// Queue notification for watched actors (file-based + Matrix real-time)
+// Queue notification for watched actors (outbox + Matrix real-time)
 function queueNotification(activity) {
   const notification = {
     actor: activity.actor,
@@ -34,15 +35,58 @@ function queueNotification(activity) {
     details: activity.details,
     summary: `${activity.actor} ${activity.action}${activity.task_title ? ` "${activity.task_title}"` : ''}${activity.details ? ` (${activity.details})` : ''}`
   };
-  
-  // File-based notification (for polling)
-  notify.addNotification(notification);
-  
-  // Real-time Matrix notification
-  matrixNotify.notifyKanban(notification).catch(err => {
+
+  // Always enqueue first (real outbox). We only remove after successful delivery.
+  const outboxItem = notify.addNotification(notification);
+
+  // Try immediate delivery; if it fails, the outbox worker will retry later.
+  matrixNotify.notifyKanban(notification).then((res) => {
+    if (res) {
+      notify.markSent(outboxItem.id);
+    } else {
+      notify.markAttempt(outboxItem.id, 'matrix send returned null');
+    }
+  }).catch(err => {
+    notify.markAttempt(outboxItem.id, err?.message || 'matrix send error');
     console.error('[server] Matrix notification error:', err.message);
   });
 }
+
+// === Outbox worker ===
+// Periodically retries unsent notifications in pending.json.
+// This prevents message loss when Matrix is temporarily unavailable.
+const OUTBOX_FLUSH_INTERVAL_MS = parseInt(process.env.OUTBOX_FLUSH_INTERVAL_MS || '15000', 10);
+const OUTBOX_MAX_BACKOFF_MS = parseInt(process.env.OUTBOX_MAX_BACKOFF_MS || String(10 * 60 * 1000), 10);
+
+async function flushOutboxOnce() {
+  try {
+    if (!matrixNotify?.CONFIG?.enabled) return;
+
+    const pending = notify.getNotifications();
+    if (!Array.isArray(pending) || pending.length === 0) return;
+
+    const now = Date.now();
+    for (const item of pending) {
+      const attempts = Number(item.attempts) || 0;
+      const lastAttemptMs = item.last_attempt_at ? Date.parse(item.last_attempt_at) : 0;
+      const backoffMs = Math.min(1000 * Math.pow(2, attempts), OUTBOX_MAX_BACKOFF_MS);
+      if (lastAttemptMs && (now - lastAttemptMs) < backoffMs) {
+        continue;
+      }
+
+      const res = await matrixNotify.notifyKanban(item);
+      if (res) {
+        notify.markSent(item.id);
+      } else {
+        notify.markAttempt(item.id, 'matrix send returned null');
+      }
+    }
+  } catch (err) {
+    console.error('[server] Outbox flush error:', err?.message || err);
+  }
+}
+
+setInterval(flushOutboxOnce, OUTBOX_FLUSH_INTERVAL_MS).unref?.();
 
 // SSE connected clients
 const sseClients = new Set();
@@ -792,6 +836,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`Kanban Board running at http://localhost:${PORT}`);
+app.listen(PORT, HOST, () => {
+  const prettyHost = HOST === '0.0.0.0' ? 'localhost' : HOST;
+  console.log(`Kanban Board running at http://${prettyHost}:${PORT}`);
 });

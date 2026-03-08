@@ -48,6 +48,10 @@ let pendingCommentFiles = []; // Array<{file: File, previewUrl: string}>
 
 // Goals state
 let goalsLoaded = false;
+let goalsLoading = false;
+let goalsIsEditing = false;
+let goalsLoadSeq = 0; // prevents out-of-order async overwrites
+let goalsSaveInFlight = false;
 let goalsContent = '';
 let goalsUpdatedAt = null;
 
@@ -98,8 +102,10 @@ function setupSSE() {
 
       // Refresh goals when they change
       if (data.type.startsWith('goals:')) {
-        // Only refetch if Goals view is visible
-        if (goalsView && goalsView.classList.contains('active')) {
+        // Don't clobber the editor while the user is editing; just mark stale
+        if (goalsIsEditing) {
+          goalsLoaded = false;
+        } else if (goalsView && goalsView.classList.contains('active')) {
           loadGoals();
         } else {
           goalsLoaded = false; // mark stale
@@ -176,8 +182,10 @@ async function loadTasks() {
     const res = await fetch(`${API_URL}/tasks`);
     tasks = await res.json();
     renderTasks();
+    return tasks;
   } catch (err) {
     console.error('Failed to load tasks:', err);
+    return tasks;
   }
 }
 
@@ -214,6 +222,18 @@ async function getTaskWithComments(id) {
   return res.json();
 }
 
+async function getTaskByHexId(hexId) {
+  const hex = String(hexId || '').trim().toUpperCase();
+  if (!hex) return null;
+  const res = await fetch(`${API_URL}/tasks/hex/${encodeURIComponent(hex)}`);
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`GET /api/tasks/hex/${hex} failed: ${res.status} ${body}`);
+  }
+  return res.json();
+}
+
 async function addComment(taskId, { author, content, files = [] }) {
   const form = new FormData();
   form.append('author', author);
@@ -231,7 +251,13 @@ async function addComment(taskId, { author, content, files = [] }) {
 
 // Goals API
 async function getGoals() {
-  const res = await fetch(`${API_URL}/goals`);
+  const res = await fetch(`${API_URL}/goals`, {
+    cache: 'no-store'
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`GET /api/goals failed: ${res.status} ${body}`);
+  }
   return res.json();
 }
 
@@ -239,8 +265,12 @@ async function updateGoals(content) {
   const res = await fetch(`${API_URL}/goals`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content })
+    body: JSON.stringify({ content, actor: 'Jin' })
   });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`PUT /api/goals failed: ${res.status} ${body}`);
+  }
   return res.json();
 }
 
@@ -578,7 +608,7 @@ function setActiveView(viewName) {
   }
 
   // Lazily load data when entering views
-  if (viewName === 'goals' && !goalsLoaded) {
+  if (viewName === 'goals' && !goalsLoaded && !goalsLoading) {
     loadGoals();
   }
   if (viewName === 'strategy') {
@@ -610,7 +640,15 @@ function setupNavigation() {
   setActiveView(validViews.includes(hash) ? hash : 'board');
 }
 
+function syncGoalsInteractivity() {
+  const busy = goalsLoading || goalsSaveInFlight;
+  if (editGoalsBtn) editGoalsBtn.disabled = busy || !goalsLoaded;
+  if (saveGoalsBtn) saveGoalsBtn.disabled = busy;
+  if (cancelGoalsBtn) cancelGoalsBtn.disabled = busy;
+}
+
 function setGoalsEditMode(editing) {
+  goalsIsEditing = !!editing;
   if (!goalsEditor || !goalsDisplay || !editGoalsBtn || !saveGoalsBtn || !cancelGoalsBtn) return;
 
   goalsEditor.classList.toggle('hidden', !editing);
@@ -621,6 +659,7 @@ function setGoalsEditMode(editing) {
   cancelGoalsBtn.classList.toggle('hidden', !editing);
 
   if (goalsError) goalsError.classList.add('hidden');
+  syncGoalsInteractivity();
 }
 
 function renderGoalsDisplay(content) {
@@ -639,35 +678,61 @@ function renderGoalsMeta(updatedAt) {
 }
 
 async function loadGoals() {
+  const seq = ++goalsLoadSeq;
+  goalsLoading = true;
+  syncGoalsInteractivity();
+
   try {
     const data = await getGoals();
-    goalsContent = data.content || '';
+    // Ignore out-of-order results
+    if (seq !== goalsLoadSeq) return;
+
+    goalsContent = (typeof data.content === 'string') ? data.content : '';
     goalsUpdatedAt = data.updated_at || null;
     goalsLoaded = true;
 
-    if (goalsEditor) goalsEditor.value = goalsContent;
-    renderGoalsDisplay(goalsContent);
-    renderGoalsMeta(goalsUpdatedAt);
-    setGoalsEditMode(false);
+    // Never clobber the editor while the user is typing
+    if (!goalsIsEditing) {
+      if (goalsEditor) goalsEditor.value = goalsContent;
+      renderGoalsDisplay(goalsContent);
+      renderGoalsMeta(goalsUpdatedAt);
+      setGoalsEditMode(false);
+    } else {
+      renderGoalsMeta(goalsUpdatedAt);
+    }
   } catch (err) {
     console.error('Failed to load goals:', err);
     if (goalsError) {
       goalsError.textContent = 'Failed to load goals.';
       goalsError.classList.remove('hidden');
     }
+  } finally {
+    // Only the latest request clears the loading flag
+    if (seq === goalsLoadSeq) {
+      goalsLoading = false;
+    }
+    syncGoalsInteractivity();
   }
 }
 
 async function saveGoals() {
   if (!goalsEditor) return;
+  if (goalsSaveInFlight) return;
+
+  goalsSaveInFlight = true;
+  // Invalidate any in-flight GET that might overwrite the saved state
+  goalsLoadSeq++;
+  syncGoalsInteractivity();
+
   const newContent = goalsEditor.value;
 
   try {
     const data = await updateGoals(newContent);
-    goalsContent = data.content || '';
+    goalsContent = (typeof data.content === 'string') ? data.content : '';
     goalsUpdatedAt = data.updated_at || null;
     goalsLoaded = true;
 
+    if (goalsEditor) goalsEditor.value = goalsContent;
     renderGoalsDisplay(goalsContent);
     renderGoalsMeta(goalsUpdatedAt);
     setGoalsEditMode(false);
@@ -677,13 +742,24 @@ async function saveGoals() {
       goalsError.textContent = 'Failed to save goals.';
       goalsError.classList.remove('hidden');
     }
+  } finally {
+    goalsSaveInFlight = false;
+    syncGoalsInteractivity();
   }
 }
 
 function setupGoals() {
   if (!editGoalsBtn || !saveGoalsBtn || !cancelGoalsBtn) return;
 
-  editGoalsBtn.addEventListener('click', () => {
+  syncGoalsInteractivity();
+
+  editGoalsBtn.addEventListener('click', async () => {
+    // Avoid entering edit mode with stale/empty state while a load is in flight
+    if (!goalsLoaded && !goalsLoading) {
+      await loadGoals();
+    }
+    if (!goalsLoaded) return;
+
     if (goalsEditor) goalsEditor.value = goalsContent;
     setGoalsEditMode(true);
   });
@@ -693,16 +769,114 @@ function setupGoals() {
     setGoalsEditMode(false);
   });
 
-  saveGoalsBtn.addEventListener('click', () => {
-    saveGoals();
+  saveGoalsBtn.addEventListener('click', async () => {
+    await saveGoals();
   });
+}
+
+// Strategy Map → Kanban task lookup helpers (Phase 1: click a node to open a task modal)
+function extractHexIdFromText(text) {
+  const s = String(text || '');
+  // Prefer explicit "#0016" style.
+  const hash = s.match(/#([0-9a-fA-F]{4})(?![0-9a-fA-F])/);
+  if (hash?.[1]) return hash[1].toUpperCase();
+
+  // Also allow plain "0016" (guarded to reduce false positives like "2026").
+  const plain = s.match(/(?:^|[^0-9a-fA-F])([0-9a-fA-F]{4})(?![0-9a-fA-F])/);
+  if (plain?.[1] && plain[1][0] === '0') return plain[1].toUpperCase();
+
+  return null;
+}
+
+function normalizeTextForTaskMatch(text) {
+  let s = String(text || '').trim();
+  // Strip common list markers / bullets.
+  s = s.replace(/^[\-*•]\s+/, '');
+  // Strip a leading "#0016 " or "0016: " label if present.
+  s = s.replace(/^#?[0-9a-fA-F]{4}(?![0-9a-fA-F])\s*[-–:：]?\s*/, '');
+  // Collapse whitespace for more stable comparisons.
+  s = s.replace(/\s+/g, ' ').trim();
+  return s.toLowerCase();
+}
+
+function pickBestContainsMatch(queryNorm, taskList) {
+  const scored = [];
+  for (const t of taskList) {
+    const titleNorm = normalizeTextForTaskMatch(t?.title || '');
+    if (!titleNorm) continue;
+
+    let score = Infinity;
+    if (titleNorm.includes(queryNorm)) {
+      // Prefer tighter matches (closest length).
+      score = Math.abs(titleNorm.length - queryNorm.length);
+    } else if (queryNorm.includes(titleNorm)) {
+      // Query contains the full title (still a good match; slightly worse than the above).
+      score = 50 + Math.abs(queryNorm.length - titleNorm.length);
+    }
+
+    if (Number.isFinite(score)) scored.push({ t, score });
+  }
+  scored.sort((a, b) => a.score - b.score);
+  return scored[0]?.t || null;
+}
+
+async function openTaskFromStrategyNodeText(nodeText) {
+  const raw = String(nodeText || '').trim();
+  if (!raw) return false;
+
+  // (a) Hex id match
+  const hex = extractHexIdFromText(raw);
+  if (hex) {
+    try {
+      const byHex = await getTaskByHexId(hex);
+      if (byHex?.id != null) {
+        await openModal(byHex.id);
+        return true;
+      }
+    } catch (err) {
+      console.error('StrategyMap click: failed hex lookup', { hex, raw, err });
+    }
+  }
+
+  // Ensure we have a tasks list for title matching.
+  if (!Array.isArray(tasks) || tasks.length === 0) {
+    await loadTasks();
+  }
+
+  const list = Array.isArray(tasks) ? tasks : [];
+  const queryNorm = normalizeTextForTaskMatch(raw);
+  if (!queryNorm) {
+    console.warn('StrategyMap click: no usable title text after normalization', { raw, hex });
+    alert(`No matching Kanban task found for:\n${raw}`);
+    return false;
+  }
+
+  // (b) Exact title match
+  const exact = list.find(t => normalizeTextForTaskMatch(t?.title || '') === queryNorm);
+  if (exact?.id != null) {
+    await openModal(exact.id);
+    return true;
+  }
+
+  // (c) Contains match with a simple "closest length" heuristic
+  const best = pickBestContainsMatch(queryNorm, list);
+  if (best?.id != null) {
+    await openModal(best.id);
+    return true;
+  }
+
+  // No match
+  console.warn('StrategyMap click: no matching task found', { raw, hex, queryNorm, taskCount: list.length });
+  alert(`No matching Kanban task found for:\n${raw}`);
+  return false;
 }
 
 // Expose functions for other modules (strategy-map.js)
 window.kanban = {
   openModal,
   setActiveView,
-  getTasks: () => tasks
+  getTasks: () => tasks,
+  openTaskFromStrategyNodeText
 };
 
 // Utilities
